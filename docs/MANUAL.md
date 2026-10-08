@@ -1,6 +1,6 @@
-# Manual do Conta Certa
+# Manual do sistema P&S Cobranças
 
-O Conta Certa organiza o serviço de pagar as contas das empresas clientes. Cada boleto vira uma conta com a NF-e anexada, e o sistema calcula sozinho quanto você recebe: 5% da nota no atacado e 4% no varejo.
+O sistema da P&S Cobranças organiza o serviço de pagar as contas das empresas clientes. Cada boleto vira uma conta com a NF-e anexada, e o sistema calcula sozinho quanto você recebe: 5% da nota no atacado e 4% no varejo.
 
 ## Como o sistema funciona
 
@@ -21,7 +21,16 @@ A situação de cada conta aparece com uma cor:
 | Pago | Boleto pago; a taxa entra no fechamento do mês |
 | Cancelado | Saiu da lista e não entra no fechamento |
 
-O aplicativo abre com empresas e contas **de exemplo**, para você testar à vontade. Quando for usar de verdade, remova-as em Ajustes (passo 7).
+## Entrar no sistema
+
+Abra o endereço do sistema e entre com o seu e-mail e senha. Quem cadastra os acessos é a administradora, no Supabase (veja [SUPABASE.md](SUPABASE.md)).
+
+![Tela de entrada](img/00-login.png)
+
+- **Esqueci minha senha:** digite o e-mail e clique no link. Chega um e-mail com o link para criar uma senha nova.
+- **Sair:** no rodapé do menu lateral, ao lado do seu e-mail.
+
+Para testar o sistema antes de lançar as contas reais, clique em **Carregar exemplos** no Painel. Os exemplos são removidos depois em Ajustes (passo 7).
 
 ## Passo 1: cadastrar a empresa cliente
 
@@ -139,21 +148,21 @@ A tela Contas a pagar também tem **Exportar CSV**, que exporta exatamente a lis
 
 ## Passo 7: ajustes e começo do uso real
 
-Em **Ajustes** você define o nome da sua empresa (aparece no menu) e os percentuais de atacado e varejo. Mudar um percentual vale para as contas lançadas dali em diante; as antigas guardam o percentual da época, então o histórico não muda.
+Em **Ajustes** você define o nome da empresa (aparece no menu) e os percentuais de atacado e varejo. Mudar um percentual vale para as contas lançadas dali em diante; as antigas guardam o percentual da época, então o histórico não muda.
 
 ![Tela de Ajustes](img/14-ajustes.png)
 
 Para começar a usar com dados reais:
 
-- [ ] Em Ajustes, clique em **Remover exemplos** (seus lançamentos reais não são afetados)
-- [ ] Digite o nome da sua empresa e confira as taxas de 5% e 4%
+- [ ] Se carregou exemplos, clique em **Remover exemplos** em Ajustes (seus lançamentos reais não são afetados)
+- [ ] Confira as taxas de 5% e 4%
 - [ ] Cadastre as empresas clientes
 - [ ] Lance as contas em aberto, anexando as NF-e
-- [ ] Compartilhe o link do aplicativo com quem trabalha com você, com permissão de edição
+- [ ] Cadastre o acesso de cada pessoa da equipe no Supabase ([SUPABASE.md](SUPABASE.md), etapa 4)
 
 ## Dicas
 
-- Na versão publicada no Claude, os dados ficam salvos na nuvem, junto com o aplicativo: quem tiver acesso de edição vê as mesmas contas, em tempo real.
-- Quem receber acesso só de visualização consegue consultar, mas não lança nem anexa arquivos.
+- Os dados ficam no Supabase: todas as pessoas da equipe veem as mesmas contas, e uma alteração aparece na tela dos outros na hora.
+- Os arquivos de NF-e e comprovantes ficam guardados numa pasta privada; só quem está logado consegue abrir.
 - Na lista de contas, combine os filtros (empresa, atacado/varejo, matriz/filial) com a busca por recebedor ou número da NF-e.
 - Lançou algo errado? Abra a ficha da conta e use **Editar**, **Cancelar** ou **Estornar pagamento**.

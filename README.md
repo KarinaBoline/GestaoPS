@@ -1,6 +1,8 @@
 # Gestão P&S
 
-Sistema para organizar o pagamento das contas das empresas clientes: boletos de mercadoria, NF-e, repasses e a taxa cobrada por conta paga (5% da nota no atacado, 4% no varejo).
+Sistema da **P&S Cobranças** para organizar o pagamento das contas das empresas clientes: boletos de mercadoria, NF-e, repasses e a taxa cobrada por conta paga (5% da nota no atacado, 4% no varejo).
+
+**Endereço:** https://karinaboline.github.io/GestaoPS/ (depois de ligar o GitHub Pages)
 
 ![Painel do sistema](docs/img/01-painel.png)
 
@@ -11,25 +13,29 @@ Sistema para organizar o pagamento das contas das empresas clientes: boletos de 
 - **Empresas clientes**: cadastro e resumo de cada empresa.
 - **Fechamento mensal**: quanto cobrar de cada empresa no mês, separado em atacado e varejo, com exportação em CSV.
 - **Ajustes**: nome da empresa e percentuais das taxas.
+- **Acesso por login**: cada pessoa da equipe entra com o próprio e-mail e senha.
 
-O passo a passo completo, com imagens, está em [docs/MANUAL.md](docs/MANUAL.md).
+## Documentação
+
+| Documento | Conteúdo |
+| --- | --- |
+| [docs/MANUAL.md](docs/MANUAL.md) | Passo a passo de uso, com imagens |
+| [docs/SUPABASE.md](docs/SUPABASE.md) | Como criar e conectar o banco de dados no Supabase |
 
 ## Arquivos
 
 | Arquivo | Conteúdo |
 | --- | --- |
 | `index.html` | O aplicativo inteiro, em um único arquivo |
-| `docs/MANUAL.md` | Manual de uso com capturas de tela |
-| `docs/img/` | Capturas de tela usadas no manual |
+| `config.js` | Endereço e chave pública do Supabase |
+| `supabase/schema.sql` | Script que cria as tabelas, a pasta de arquivos e as regras de acesso |
+| `docs/` | Manual, guia do Supabase e capturas de tela |
 
-## Como usar este arquivo
+## Onde ficam os dados
 
-O `index.html` abre direto no navegador, sem instalar nada. Fora do Claude ele funciona em **modo local**:
+- **Com o Supabase configurado** (`config.js` preenchido): os dados e os arquivos de NF-e ficam no banco da P&S. É preciso entrar com e-mail e senha, e todos da equipe veem as mesmas informações em tempo real.
+- **Sem o Supabase** (`config.js` vazio): o sistema abre em modo local, com dados de exemplo. Os lançamentos ficam só no navegador de quem usa e os arquivos não são guardados. Serve para testar.
 
-- os dados ficam salvos apenas no navegador em que foram lançados;
-- o nome do arquivo da NF-e é registrado, mas o arquivo em si não é guardado;
-- cada computador tem a sua própria base.
+## Publicar o site (GitHub Pages)
 
-Para a equipe trabalhar na mesma base, com os arquivos de NF-e guardados na nuvem, use a versão publicada no Claude.
-
-Para publicar este arquivo como site (GitHub Pages): em **Settings → Pages**, escolha a branch `main` e a pasta raiz. O site continua em modo local.
+Em **Settings → Pages**, escolha **Deploy from a branch**, a branch `main` e a pasta `/ (root)`, e clique em **Save**. Em 1 a 2 minutos o site fica no ar no endereço acima.

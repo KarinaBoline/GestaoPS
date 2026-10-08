@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Conta Certa</title>
+<title>P&amp;S Cobranças</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@500;600;700&display=swap">
 <style>
@@ -140,7 +140,7 @@ svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .search input.q,.search input{width:100%;padding:8px 10px 8px 34px}
 .panel-h .search input{padding-left:34px}
 .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint);width:16px;height:16px}
-input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel],input:not([type]),select,textarea{background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:8px 10px;width:100%;min-width:0}
+input[type=text],input[type=number],input[type=date],input[type=email],input[type=tel],input[type=password],input:not([type]),select,textarea{background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:8px 10px;width:100%;min-width:0}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .toolbar select{width:auto;max-width:100%}
 
@@ -253,6 +253,15 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
 .day{padding:10px 16px 4px;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:500;border-top:1px solid var(--line)}
 .day:first-child{border-top:0}
 .chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-size:inherit;text-decoration:underline;text-underline-offset:2px}
+.rail .linkbtn{color:var(--nav-ink-strong);margin-left:6px}
+button.file{cursor:pointer}
+.auth{position:fixed;inset:0;z-index:80;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px 16px;overflow-y:auto}
+.auth-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:28px 24px;display:flex;flex-direction:column;gap:14px}
+.auth-brand{padding:0 0 6px}
+.auth-h{font-size:19px;font-weight:600}
+.auth-msg{font-size:13px;color:var(--bad);min-height:1em}
+.auth-msg.ok{color:var(--ok)}
 .warnbox{background:var(--warn-soft);color:var(--warn);border-radius:var(--r-sm);padding:10px 12px;font-size:13px}
 </style>
 </head>
@@ -261,7 +270,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
   <aside class="rail">
     <div class="brand">
       <div class="brand-mark"><svg class="i" viewBox="0 0 24 24"><path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 10l2 2 4-4"/></svg></div>
-      <div><div class="brand-name">Conta Certa</div><span class="brand-sub" id="brandSub">Pagamentos de clientes</span></div>
+      <div><div class="brand-name" id="brandName">P&amp;S Cobranças</div><span class="brand-sub">Gestão de pagamentos</span></div>
     </div>
     <nav class="nav" id="nav"></nav>
     <div class="rail-foot"><span class="dot" id="modeDot"></span><span id="modeTxt">Conectando…</span></div>
@@ -331,6 +340,7 @@ function makeSample(base){
 if(typeof module!=='undefined')module.exports=makeSample;
 </script>
 
+<script src="config.js"></script>
 <script>
 /* ---------- utilidades ---------- */
 const $=s=>document.querySelector(s);
@@ -373,7 +383,8 @@ const ic=(n,cls='i')=>`<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true
 
 /* ---------- estado ---------- */
 const COLS=['clientes','contas'];
-const DEF_CFG={empresa:'',pctAtacado:5,pctVarejo:4};
+const DEF_CFG={empresa:'P&S Cobranças',pctAtacado:5,pctVarejo:4};
+const BRAND_ICON='<svg class="i" viewBox="0 0 24 24"><path d="M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 10l2 2 4-4"/></svg>';
 const S={clientes:[],contas:[],config:{...DEF_CFG}};
 let MODE='init',DB=null,DL=null,AS=null,READONLY=false,LOADED=new Set();
 const ui={view:'painel',cTab:'apagar',cQ:'',cCli:'',cTr:'',cTp:'',sel:new Set(),fMes:TODAY.slice(0,7)};
@@ -390,30 +401,92 @@ const trChip=c=>`<span class="tag">${c.transacao==='atacado'?'Atacado':'Varejo'}
 const tpChip=c=>`<span class="tag">${c.tipoEmpresa==='filial'?'Filial':'Matriz'}</span>`;
 const cliName=id=>esc(idx.cli.get(id)?.nome||'Empresa removida');
 const fileUrl=f=>f&&f.id?'/_blob/'+f.id:null;
-const fileChip=(f,label)=>{if(!f)return `<span class="file none">${ic('clip')}sem ${label}</span>`;const u=fileUrl(f);return u?`<a class="file" href="${u}" target="_blank" rel="noopener" title="Abrir ${esc(f.nome)}">${ic('file')}${esc(f.nome)}</a>`:`<span class="file" title="Arquivo de exemplo (não há arquivo real anexado)">${ic('file')}${esc(f.nome)}</span>`};
+const fileChip=(f,label)=>{if(!f)return `<span class="file none">${ic('clip')}sem ${label}</span>`;if(f.path)return `<button type="button" class="file" data-act="open-file" data-path="${esc(f.path)}" data-nome="${esc(f.nome)}" title="Abrir ${esc(f.nome)}">${ic('file')}${esc(f.nome)}</button>`;const u=fileUrl(f);return u?`<a class="file" href="${u}" target="_blank" rel="noopener" title="Abrir ${esc(f.nome)}">${ic('file')}${esc(f.nome)}</a>`:`<span class="file" title="Arquivo de exemplo (não há arquivo real anexado)">${ic('file')}${esc(f.nome)}</span>`};
 
 /* ---------- persistência ---------- */
 let wq=Promise.resolve();
 const clean=o=>JSON.parse(JSON.stringify(o));
-function errMsg(e){return e&&e.code==='invalid_argument'?'Você tem acesso somente leitura a estes dados.':e&&e.code==='quota_exceeded'?'Limite de registros atingido. Remova dados antigos ou de exemplo.':'Não foi possível salvar agora. Tente de novo em instantes.'}
+function errMsg(e){
+  if(MODE==='supa'){const m=String(e&&(e.message||e.error_description||e)||'');
+    if(/JWT|session|not authenticated/i.test(m))return 'Sua sessão expirou. Entre de novo.';
+    if(/foreign key/i.test(m))return 'Esta empresa tem contas lançadas. Exclua as contas antes.';
+    if(/Failed to fetch|NetworkError/i.test(m))return 'Sem conexão com o servidor. Verifique a internet e tente de novo.';
+    return 'Não foi possível salvar: '+m;}
+  return e&&e.code==='invalid_argument'?'Você tem acesso somente leitura a estes dados.':e&&e.code==='quota_exceeded'?'Limite de registros atingido. Remova dados antigos ou de exemplo.':'Não foi possível salvar agora. Tente de novo em instantes.'}
+
+/* ---------- Supabase: conversão entre o app e as tabelas ---------- */
+const nz=v=>v===''||v===undefined?null:v;
+const num=v=>v===null||v===undefined||v===''?undefined:Number(v);
+const und=v=>v===null?undefined:v;
+const MAP={
+  clientes:{
+    to:o=>({id:o.id,nome:o.nome,cnpj:nz(o.cnpj),contato:nz(o.contato),tel:nz(o.tel),email:nz(o.email),obs:nz(o.obs),exemplo:!!o.exemplo}),
+    from:r=>({id:r.id,nome:r.nome,cnpj:r.cnpj||'',contato:r.contato||'',tel:r.tel||'',email:r.email||'',obs:r.obs||'',exemplo:!!r.exemplo||undefined})
+  },
+  contas:{
+    to:o=>({id:o.id,cliente_id:o.clienteId,tipo_empresa:o.tipoEmpresa||'matriz',transacao:o.transacao,recebedor:o.recebedor,recebedor_doc:nz(o.recebedorDoc),
+      nfe:o.nfe,valor_nf:+o.valorNF,valor_boleto:+o.valorBoleto,vencimento:o.vencimento,pct:+o.pct,status:o.status||'aberto',linha:nz(o.linha),obs:nz(o.obs),
+      criado_em:o.criadoEm||TODAY,repasse_status:o.repasse?.status==='recebido'?'recebido':'pendente',repasse_data:nz(o.repasse?.data),repasse_valor:nz(o.repasse?.valor),
+      pago_em:nz(o.pagoEm),valor_pago:nz(o.valorPago),forma:nz(o.forma),taxa_recebida:!!o.taxaRecebida,taxa_recebida_em:nz(o.taxaRecebidaEm),
+      nfe_arquivo:o.nfeArquivo||null,comprovante:o.comprovante||null,exemplo:!!o.exemplo}),
+    from:r=>{const o={id:r.id,clienteId:r.cliente_id,tipoEmpresa:r.tipo_empresa,transacao:r.transacao,recebedor:r.recebedor,recebedorDoc:r.recebedor_doc||'',nfe:r.nfe,
+      valorNF:Number(r.valor_nf),valorBoleto:Number(r.valor_boleto),vencimento:r.vencimento,pct:Number(r.pct),taxa:Number(r.taxa??Math.round(r.valor_nf*r.pct)/100),
+      status:r.status,linha:r.linha||'',obs:r.obs||'',criadoEm:r.criado_em,
+      repasse:r.repasse_status==='recebido'?{status:'recebido',data:r.repasse_data,valor:num(r.repasse_valor)}:{status:'pendente'},
+      pagoEm:und(r.pago_em),valorPago:num(r.valor_pago),forma:und(r.forma),taxaRecebida:!!r.taxa_recebida,taxaRecebidaEm:und(r.taxa_recebida_em),
+      nfeArquivo:und(r.nfe_arquivo),comprovante:und(r.comprovante)};if(r.exemplo)o.exemplo=true;return o}
+  }
+};
+function sbCall(p){return p.then(r=>{if(r.error)throw r.error;return r})}
+function enqueue(fn){wq=wq.then(fn).catch(e=>{toast(errMsg(e),true);supaReload()});return wq}
+
 function put(col,o){const data=clean(o);const arr=S[col],i=arr.findIndex(x=>x.id===o.id);if(i>=0)arr[i]=data;else arr.push(data);
-  if(MODE==='db')wq=wq.then(()=>DB.collection(col).doc(o.id).set(data)).catch(e=>toast(errMsg(e),true));else saveLocal()}
-function del(col,id){S[col]=S[col].filter(x=>x.id!==id);if(MODE==='db')wq=wq.then(()=>DB.collection(col).doc(id).delete()).catch(e=>toast(errMsg(e),true));else saveLocal()}
-function putConfig(c){S.config=Object.assign({},S.config,c);if(MODE==='db')wq=wq.then(()=>DB.doc('config/geral').set(clean(S.config))).catch(e=>toast(errMsg(e),true));else saveLocal()}
-const LKEY='conta-certa-v1';
+  if(MODE==='db')wq=wq.then(()=>DB.collection(col).doc(o.id).set(data)).catch(e=>toast(errMsg(e),true));
+  else if(MODE==='supa')enqueue(()=>sbCall(SB.from(col).upsert(MAP[col].to(data))));
+  else saveLocal()}
+function putMany(col,list){if(MODE!=='supa'){list.forEach(o=>put(col,o));return}
+  list.forEach(o=>{const arr=S[col],i=arr.findIndex(x=>x.id===o.id);if(i>=0)arr[i]=clean(o);else arr.push(clean(o))});
+  enqueue(async()=>{for(let i=0;i<list.length;i+=200)await sbCall(SB.from(col).upsert(list.slice(i,i+200).map(MAP[col].to)))})}
+function del(col,id){S[col]=S[col].filter(x=>x.id!==id);
+  if(MODE==='db')wq=wq.then(()=>DB.collection(col).doc(id).delete()).catch(e=>toast(errMsg(e),true));
+  else if(MODE==='supa')enqueue(()=>sbCall(SB.from(col).delete().eq('id',id)));
+  else saveLocal()}
+function putConfig(c){S.config=Object.assign({},S.config,c);
+  if(MODE==='db')wq=wq.then(()=>DB.doc('config/geral').set(clean(S.config))).catch(e=>toast(errMsg(e),true));
+  else if(MODE==='supa')enqueue(()=>sbCall(SB.from('config').upsert({id:1,empresa:S.config.empresa||'P&S Cobranças',pct_atacado:+S.config.pctAtacado,pct_varejo:+S.config.pctVarejo})));
+  else saveLocal()}
+const LKEY='ps-cobrancas-v1';
 function saveLocal(){try{localStorage.setItem(LKEY,JSON.stringify(S))}catch(e){}}
 function loadLocal(){try{const t=localStorage.getItem(LKEY);if(t){const o=JSON.parse(t);COLS.forEach(k=>S[k]=o[k]||[]);S.config=Object.assign({...DEF_CFG},o.config||{});return true}}catch(e){}return false}
+const FILE_TYPES={pdf:'application/pdf',xml:'text/xml',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp'};
 async function uploadFile(file){
   if(!file)return null;
-  if(!AS){return MODE==='local'?{nome:file.name}:null}
   const ext=(file.name.split('.').pop()||'').toLowerCase();
-  const type=ext==='xml'||ext==='txt'?'text/plain':ext==='pdf'?'application/pdf':ext==='png'?'image/png':(ext==='jpg'||ext==='jpeg')?'image/jpeg':ext==='webp'?'image/webp':file.type;
+  if(MODE==='supa'){
+    if(file.size>20*1024*1024){toast('Arquivo maior que 20 MB.',true);throw new Error('too_large')}
+    const safe=file.name.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w.\-]+/g,'_').slice(-80);
+    const path=TODAY.slice(0,7)+'/'+uid('arq')+'-'+safe;
+    try{await sbCall(SB.storage.from('documentos').upload(path,file,{contentType:FILE_TYPES[ext]||file.type||'application/octet-stream',upsert:false}));return{path,nome:file.name,tipo:ext}}
+    catch(e){toast('Não foi possível anexar o arquivo: '+(e.message||e),true);throw e}
+  }
+  if(!AS){return MODE==='local'?{nome:file.name}:null}
+  const type=ext==='xml'||ext==='txt'?'text/plain':FILE_TYPES[ext]||file.type;
   try{const r=await AS.upload(file,{type});return{id:r.id,nome:file.name,tipo:ext}}
   catch(e){toast(e&&e.code==='too_large'?'Arquivo maior que 20 MB.':e&&e.code==='unsupported_type'?'Formato não aceito. Envie PDF, XML ou imagem.':'Não foi possível anexar o arquivo.',true);throw e}
 }
+async function openFile(path,nome){
+  const w=window.open('','_blank');
+  try{const {data}=await sbCall(SB.storage.from('documentos').createSignedUrl(path,300));if(w)w.location.href=data.signedUrl;else location.href=data.signedUrl}
+  catch(e){if(w)w.close();toast('Não foi possível abrir '+(nome||'o arquivo')+'.',true)}
+}
+function removeFiles(c){if(MODE!=='supa'||!c)return;const ps=[c.nfeArquivo?.path,c.comprovante?.path].filter(Boolean);if(ps.length)SB.storage.from('documentos').remove(ps).catch(()=>{})}
 
+/* ---------- inicialização ---------- */
+let SB=null,SB_USER=null,RT=null,STARTED=null;
+const CFG=window.PS_CONFIG||{};
 async function boot(){
   $('#todayTxt').textContent=toD(TODAY).toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if(CFG.supabaseUrl&&CFG.supabaseAnonKey){bootSupabase();return}
   if(!window.claude||!window.claude.use){startLocal();return}
   try{DB=await window.claude.use('db')}catch(e){DB=null}
   if(!DB){startLocal();return}
@@ -425,8 +498,73 @@ async function boot(){
   DB.doc('config/geral').onSnapshot(s=>{if(s.exists)S.config=Object.assign({...DEF_CFG},s.data());scheduleRender()},()=>{});
   setTimeout(()=>{COLS.forEach(c=>LOADED.add(c));scheduleRender()},6000);
 }
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=()=>no(new Error('script'));document.head.appendChild(s)})}
+async function bootSupabase(){
+  MODE='supa';setMode();
+  const authHash=/type=(recovery|invite)/.exec(location.hash||'');
+  try{if(!window.supabase)await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/dist/umd/supabase.js')}
+  catch(e){$('#view').innerHTML='<div class="loading">Não foi possível carregar a conexão com o banco de dados. Verifique a internet e recarregue a página.</div>';return}
+  SB=window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  SB.auth.onAuthStateChange((ev,session)=>{
+    if(ev==='PASSWORD_RECOVERY'){showSetPassword('Crie uma nova senha');return}
+    if(ev==='SIGNED_OUT'){SB_USER=null;STARTED=null;stopRealtime();COLS.forEach(k=>S[k]=[]);setMode();showLogin();return}
+    if(session&&session.user&&(!SB_USER||SB_USER.id!==session.user.id)){SB_USER=session.user;if(!authHash)startSupaData()}
+  });
+  const {data}=await SB.auth.getSession();
+  if(data.session){SB_USER=data.session.user;if(authHash){showSetPassword(authHash[1]==='invite'?'Bem-vindo(a)! Crie sua senha de acesso':'Crie uma nova senha');return}startSupaData()}
+  else showLogin();
+}
+async function supaLoadAll(){
+  const [c,k,g]=await Promise.all([sbCall(SB.from('clientes').select('*').order('nome')),sbCall(SB.from('contas').select('*').order('vencimento').limit(20000)),sbCall(SB.from('config').select('*').eq('id',1).maybeSingle())]);
+  S.clientes=c.data.map(MAP.clientes.from);S.contas=k.data.map(MAP.contas.from);
+  if(g.data)S.config={empresa:g.data.empresa||'',pctAtacado:Number(g.data.pct_atacado),pctVarejo:Number(g.data.pct_varejo)};
+}
+let reloadT;function supaReload(){if(MODE!=='supa'||!SB_USER)return;clearTimeout(reloadT);reloadT=setTimeout(()=>supaLoadAll().then(scheduleRender).catch(()=>{}),400)}
+async function startSupaData(){
+  if(!SB_USER||STARTED===SB_USER.id)return;STARTED=SB_USER.id;
+  closeLogin();$('#view').innerHTML='<div class="loading">Carregando dados…</div>';setMode();
+  try{await supaLoadAll()}catch(e){$('#view').innerHTML=`<div class="loading">Não foi possível ler os dados: ${esc(e.message||e)}.<br>Confira se o script <b>supabase/schema.sql</b> foi executado no projeto.</div>`;return}
+  COLS.forEach(c=>LOADED.add(c));render();startRealtime();
+}
+function startRealtime(){stopRealtime();
+  RT=SB.channel('ps-dados').on('postgres_changes',{event:'*',schema:'public'},p=>{
+    const col=p.table;
+    if(col==='config'){if(p.new&&p.new.id===1){S.config={empresa:p.new.empresa||'',pctAtacado:Number(p.new.pct_atacado),pctVarejo:Number(p.new.pct_varejo)};scheduleRender()}return}
+    if(!MAP[col])return;
+    if(p.eventType==='DELETE'){S[col]=S[col].filter(x=>x.id!==p.old.id)}
+    else{const o=MAP[col].from(p.new),arr=S[col],i=arr.findIndex(x=>x.id===o.id);if(i>=0)arr[i]=o;else arr.push(o)}
+    scheduleRender();
+  }).subscribe();
+}
+function stopRealtime(){if(RT&&SB){SB.removeChannel(RT);RT=null}}
 function startLocal(){MODE='local';if(!loadLocal()){const s=makeSample(TODAY);COLS.forEach(k=>S[k]=s[k])}setMode();render()}
-function setMode(){$('#modeDot').className='dot'+(MODE==='db'?'':' local');$('#modeTxt').textContent=MODE==='db'?(READONLY?'Na nuvem · somente leitura':'Dados salvos na nuvem'):'Modo local · este navegador'}
+function setMode(){
+  const t=MODE==='supa'?(SB_USER?SB_USER.email:'Conectando…'):MODE==='db'?(READONLY?'Na nuvem · somente leitura':'Dados salvos na nuvem'):'Modo local · este navegador';
+  $('#modeDot').className='dot'+(MODE==='db'||MODE==='supa'?'':' local');
+  $('#modeTxt').innerHTML=esc(t)+(MODE==='supa'&&SB_USER?` <button class="linkbtn" data-act="logout">Sair</button>`:'');
+}
+
+/* ---------- login (Supabase) ---------- */
+function authCard(inner){let el=$('#authRoot');if(!el){el=document.createElement('div');el.id='authRoot';document.body.appendChild(el)}
+  el.innerHTML=`<div class="auth"><form class="auth-card" id="authForm" novalidate><div class="brand auth-brand"><div class="brand-mark">${BRAND_ICON}</div><div><div class="brand-name" style="color:var(--ink)">P&amp;S Cobranças</div><span class="muted" style="font-size:12.5px">Gestão de pagamentos</span></div></div>${inner}<div class="auth-msg" id="authMsg" role="alert"></div></form></div>`;
+  return $('#authForm')}
+function closeLogin(){const el=$('#authRoot');if(el)el.remove()}
+function authMsg(t,ok){const m=$('#authMsg');if(m){m.textContent=t;m.className='auth-msg'+(ok?' ok':'')}}
+function showLogin(){
+  const f=authCard(`<h1 class="auth-h">Entrar</h1><label class="f">E-mail<input id="lgEmail" name="email" type="email" autocomplete="username" required></label><label class="f">Senha<input id="lgPass" name="senha" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit" style="justify-content:center">Entrar</button><button type="button" class="linkbtn" id="lgForgot" style="align-self:center">Esqueci minha senha</button>`);
+  setTimeout(()=>$('#lgEmail')?.focus(),30);
+  f.addEventListener('submit',async e=>{e.preventDefault();const b=f.querySelector('[type=submit]');b.disabled=true;authMsg('');
+    const {error}=await SB.auth.signInWithPassword({email:f.email.value.trim(),password:f.senha.value});b.disabled=false;
+    if(error)authMsg(/Invalid login/i.test(error.message)?'E-mail ou senha incorretos.':/Email not confirmed/i.test(error.message)?'Este e-mail ainda não foi confirmado. Veja o link enviado para a sua caixa de entrada.':'Não foi possível entrar: '+error.message)});
+  $('#lgForgot').onclick=async()=>{const em=f.email.value.trim();if(!em){authMsg('Digite seu e-mail acima e clique de novo em "Esqueci minha senha".');return}
+    const {error}=await SB.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});authMsg(error?'Não foi possível enviar: '+error.message:'Enviamos um link para '+em+'. Abra o e-mail para criar uma nova senha.',!error)};
+}
+function showSetPassword(title){
+  const f=authCard(`<h1 class="auth-h">${esc(title)}</h1><label class="f">Nova senha<input id="pw1" name="p1" type="password" autocomplete="new-password" minlength="8" required></label><label class="f">Repita a senha<input id="pw2" name="p2" type="password" autocomplete="new-password" required></label><div class="muted" style="font-size:12.5px">Use pelo menos 8 caracteres.</div><button class="btn primary" type="submit" style="justify-content:center">Salvar senha e entrar</button>`);
+  f.addEventListener('submit',async e=>{e.preventDefault();if(f.p1.value.length<8){authMsg('A senha precisa ter pelo menos 8 caracteres.');return}if(f.p1.value!==f.p2.value){authMsg('As duas senhas não são iguais.');return}
+    const {data,error}=await SB.auth.updateUser({password:f.p1.value});if(error){authMsg('Não foi possível salvar: '+error.message);return}
+    history.replaceState(null,'',location.pathname);SB_USER=data.user;STARTED=null;startSupaData()});
+}
 let rq=false;function scheduleRender(){if(rq)return;rq=true;requestAnimationFrame(()=>{rq=false;render()})}
 
 /* ---------- navegação ---------- */
@@ -435,7 +573,7 @@ const SHORT={contas:'Contas',empresas:'Empresas',fechamento:'Fechamento'};
 function renderNav(){
   const urg=S.contas.filter(c=>{const s=sit(c);return s==='vencido'||((s==='pronto'||s==='aguardando')&&c.vencimento<=TODAY)}).length;
   $('#nav').innerHTML=VIEWS.map(([k,l],i)=>`${i===0?'<div class="nav-sec">Operação</div>':''}${i===2?'<div class="nav-sec">Gestão</div>':''}<button data-act="nav" data-v="${k}" ${ui.view===k?'aria-current="page"':''}>${ic(k)}<span>${innerWidth<=860?(SHORT[k]||l):l}</span>${k==='contas'&&urg?`<span class="count" title="Vencem hoje ou vencidas">${urg}</span>`:''}</button>`).join('');
-  $('#brandSub').textContent=S.config.empresa||'Pagamentos de clientes';
+  $('#brandName').textContent=S.config.empresa||'P&S Cobranças';
 }
 let CUR_LIST=null;
 function render(){
@@ -569,7 +707,7 @@ V.fechamento=()=>{const rows=fechRows();const T=rows.reduce((a,r)=>({n:a.n+r.n,n
 /* Ajustes */
 V.ajustes=()=>{const nEx=COLS.reduce((s,k)=>s+S[k].filter(x=>x.exemplo).length,0);
   return `<div class="settings"><form class="panel" id="cfgForm"><div class="panel-h"><h2>Sua empresa e taxas</h2></div><div class="panel-b" style="display:flex;flex-direction:column;gap:12px">
-  <label class="f">Nome da sua empresa<input id="cfgEmpresa" name="empresa" value="${esc(S.config.empresa)}" placeholder="Aparece no menu lateral"></label>
+  <label class="f">Nome da empresa<input id="cfgEmpresa" name="empresa" value="${esc(S.config.empresa)}" placeholder="P&amp;S Cobranças"></label>
   <div class="fg"><label class="f">Taxa atacado (% da nota)<input id="cfgA" name="pctAtacado" type="number" step="0.01" min="0" value="${S.config.pctAtacado}"></label><label class="f">Taxa varejo (% da nota)<input id="cfgV" name="pctVarejo" type="number" step="0.01" min="0" value="${S.config.pctVarejo}"></label></div>
   <div class="muted" style="font-size:12.5px">Vale para as contas lançadas daqui em diante. Cada conta guarda o percentual usado quando foi lançada, então o histórico não muda.</div>
   <div><button class="btn primary" type="submit">Salvar</button></div></div></form>
@@ -577,7 +715,7 @@ V.ajustes=()=>{const nEx=COLS.reduce((s,k)=>s+S[k].filter(x=>x.exemplo).length,0
   <div>${nEx?`Há <b>${nEx}</b> registros de exemplo (empresas e contas fictícias).`:'Nenhum registro de exemplo na base.'}</div>
   <div class="muted" style="font-size:12.5px">Remova os exemplos antes de lançar as contas reais. Seus próprios lançamentos não são afetados.</div>
   <div>${nEx?`<button class="btn danger" data-act="clear-ex">${ic('trash')}Remover exemplos</button>`:`<button class="btn" data-act="seed">Carregar exemplos</button>`}</div></div></div>
-  <div class="panel"><div class="panel-h"><h2>Onde ficam os dados</h2></div><div class="panel-b" style="font-size:13.5px;display:flex;flex-direction:column;gap:8px">${MODE==='db'?`<div><span class="pill p-ok">Na nuvem</span></div><div>Lançamentos e arquivos de NF-e ficam salvos junto com este aplicativo. Quem você compartilhar com acesso de edição vê e altera os mesmos dados.</div>`:`<div><span class="pill p-warn">Neste navegador</span></div><div>Os dados ficam só neste navegador e os anexos não são guardados. Abra pelo link publicado para salvar na nuvem.</div>`}</div></div></div>`};
+  <div class="panel"><div class="panel-h"><h2>Onde ficam os dados</h2></div><div class="panel-b" style="font-size:13.5px;display:flex;flex-direction:column;gap:8px">${MODE==='supa'?`<div><span class="pill p-ok">Supabase</span></div><div>Lançamentos e arquivos de NF-e ficam no banco de dados da P&amp;S no Supabase. Cada pessoa da equipe entra com o próprio e-mail e senha e vê os mesmos dados, em tempo real.</div><div class="muted" style="font-size:12.5px">Conectado como ${esc(SB_USER?.email||'')}.</div>`:MODE==='db'?`<div><span class="pill p-ok">Na nuvem</span></div><div>Lançamentos e arquivos de NF-e ficam salvos junto com este aplicativo. Quem você compartilhar com acesso de edição vê e altera os mesmos dados.</div>`:`<div><span class="pill p-warn">Neste navegador</span></div><div>Os dados ficam só neste navegador e os anexos não são guardados. Para salvar na nuvem e trabalhar em equipe, conecte o Supabase (veja docs/SUPABASE.md no repositório).</div>`}</div></div></div>`};
 
 /* ---------- modais ---------- */
 function modal(title,body,{wide=false,submit=null,submitLabel='Salvar',extra='',onInput=null,danger=false}={}){
@@ -593,7 +731,7 @@ function confirmBox(title,text,label,fn){modal(title,`<p style="margin:0">${text
 let tt;function toast(msg,err){clearTimeout(tt);let el=$('.toast');if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.className='toast'+(err?' err':'');el.textContent=msg;tt=setTimeout(()=>el.remove(),3200)}
 function guard(){if(READONLY){toast('Seu acesso a este aplicativo é somente leitura.',true);return true}return false}
 const seg=(name,val,opts)=>`<div class="seg" role="radiogroup">${opts.map(([v,l])=>`<label><input type="radio" name="${name}" value="${v}" ${val===v?'checked':''}><span>${l}</span></label>`).join('')}</div>`;
-function dropBox(name,label,cur){const can=AS||MODE==='local';
+function dropBox(name,label,cur){const can=AS||MODE==='local'||MODE==='supa';
   return `<div class="drop" data-drop="${name}"><span style="color:var(--accent)">${ic('clip')}</span><div class="grow"><div><b style="font-weight:500">${label}</b></div><div class="muted" id="${name}Lbl">${cur?esc(cur.nome)+' (anexado)':can?'Arraste o PDF ou XML aqui, ou escolha o arquivo':'Anexos disponíveis para quem pode editar o aplicativo'}</div></div>${can?`<label class="btn sm" style="cursor:pointer">Escolher arquivo<input type="file" name="${name}" accept=".pdf,.xml,.png,.jpg,.jpeg,.webp" hidden></label>`:''}</div>`}
 function wireDrop(f,name){const box=f.querySelector(`[data-drop="${name}"]`),inp=f.querySelector(`input[name="${name}"]`);if(!box||!inp)return;
   const show=()=>{if(inp.files[0])$('#'+name+'Lbl').textContent=inp.files[0].name+' · '+Math.round(inp.files[0].size/1024)+' KB'};
@@ -689,8 +827,14 @@ async function exportCSV(kind){let rows,name;
   try{await navigator.clipboard.writeText(csv);toast('CSV copiado. Cole em uma planilha.')}catch(e){toast('Exportação indisponível neste navegador.',true)}
 }
 async function copyLinha(c){if(!c.linha){toast('Esta conta não tem linha digitável cadastrada.',true);return}try{await navigator.clipboard.writeText(c.linha.replace(/\s/g,''));toast('Linha digitável copiada.')}catch(e){contaView(c)}}
-async function seed(){if(guard())return;const s=makeSample(TODAY);for(const k of COLS)for(const o of s[k])put(k,o);scheduleRender();toast('Carregando exemplos…');if(MODE==='db')await wq;toast('Exemplos carregados.')}
-async function clearEx(){if(guard())return;for(const k of COLS)for(const o of S[k].filter(x=>x.exemplo))del(k,o.id);scheduleRender();if(MODE==='db')await wq;toast('Dados de exemplo removidos.')}
+async function seed(){if(guard())return;const s=makeSample(TODAY);toast('Carregando exemplos…');putMany('clientes',s.clientes);putMany('contas',s.contas);scheduleRender();if(MODE==='db'||MODE==='supa')await wq;toast('Exemplos carregados.')}
+async function clearEx(){if(guard())return;
+  if(MODE==='supa'){S.contas=S.contas.filter(x=>!x.exemplo);const usados=new Set(S.contas.map(c=>c.clienteId));
+    const ids=S.clientes.filter(x=>x.exemplo&&!usados.has(x.id)).map(x=>x.id),fic=S.clientes.filter(x=>x.exemplo&&usados.has(x.id)).length;
+    S.clientes=S.clientes.filter(x=>!ids.includes(x.id));scheduleRender();
+    enqueue(async()=>{await sbCall(SB.from('contas').delete().eq('exemplo',true));if(ids.length)await sbCall(SB.from('clientes').delete().in('id',ids))});await wq;
+    toast(fic?`Exemplos removidos. ${fic} empresa${fic>1?'s':''} de exemplo ficou porque tem contas reais lançadas.`:'Dados de exemplo removidos.');return}
+  for(const k of ['contas','clientes'])for(const o of S[k].filter(x=>x.exemplo))del(k,o.id);scheduleRender();if(MODE==='db')await wq;toast('Dados de exemplo removidos.')}
 
 /* ---------- eventos ---------- */
 document.addEventListener('click',e=>{
@@ -699,6 +843,8 @@ document.addEventListener('click',e=>{
   switch(a){
     case 'nav':ui.view=el.dataset.v;closeModal();render();scrollTo(0,0);break;
     case 'close':closeModal();break;
+    case 'logout':SB&&SB.auth.signOut();break;
+    case 'open-file':openFile(el.dataset.path,el.dataset.nome);break;
     case 'ctab':ui.cTab=el.dataset.t;ui.sel.clear();render();break;
     case 'cli-contas':ui.view='contas';ui.cCli=id;ui.cTab='apagar';closeModal();render();break;
     case 'conta-new':contaForm(null,id);break;
@@ -710,7 +856,7 @@ document.addEventListener('click',e=>{
     case 'cancel':confirmBox('Cancelar conta','A conta sai da lista de pagamentos e não entra no fechamento.','Cancelar conta',()=>{if(guard())return;put('contas',Object.assign({},C(),{status:'cancelado'}));toast('Conta cancelada.');scheduleRender()});break;
     case 'reopen':if(guard())break;put('contas',Object.assign({},C(),{status:'aberto'}));closeModal();toast('Conta reaberta.');scheduleRender();break;
     case 'unpay':if(guard())break;{const n=Object.assign({},C(),{status:'aberto'});['pagoEm','valorPago','forma','taxaRecebida','taxaRecebidaEm'].forEach(k=>delete n[k]);put('contas',n);closeModal();toast('Pagamento estornado.');scheduleRender()}break;
-    case 'conta-del':confirmBox('Excluir conta','A conta será apagada definitivamente.','Excluir',()=>{if(guard())return;del('contas',id);toast('Conta excluída.');scheduleRender()});break;
+    case 'conta-del':confirmBox('Excluir conta','A conta será apagada definitivamente.','Excluir',()=>{if(guard())return;removeFiles(C());del('contas',id);toast('Conta excluída.');scheduleRender()});break;
     case 'cli-new':cliForm(null);break;
     case 'cli-edit':cliForm(idx.cli.get(id));break;
     case 'cli-del':{const n=S.contas.filter(c=>c.clienteId===id).length;if(n){toast(`Esta empresa tem ${n} conta(s) lançada(s). Exclua as contas antes.`,true);break}confirmBox('Excluir empresa','A empresa será excluída.','Excluir',()=>{if(guard())return;del('clientes',id);toast('Empresa excluída.');scheduleRender()})}break;
@@ -729,7 +875,7 @@ document.addEventListener('change',e=>{const t=e.target;
   if(t.dataset.selall){const rows=cFilter().filter(r=>r.status==='aberto');if(t.checked)rows.forEach(r=>ui.sel.add(r.id));else ui.sel.clear();renderList();return}
   const k=t.dataset.ch;if(k){ui[k]=t.value;if(ui.view==='contas'){ui.sel.clear();renderList()}else render()}});
 document.addEventListener('input',e=>{const k=e.target.dataset.in;if(k){ui[k]=e.target.value;renderList()}});
-document.addEventListener('submit',e=>{if(e.target.id==='cfgForm'){e.preventDefault();if(guard())return;const o=Object.fromEntries(new FormData(e.target).entries());putConfig({empresa:o.empresa.trim(),pctAtacado:+o.pctAtacado||0,pctVarejo:+o.pctVarejo||0});toast('Ajustes salvos.');render()}});
+document.addEventListener('submit',e=>{if(e.target.id==='cfgForm'){e.preventDefault();if(guard())return;const o=Object.fromEntries(new FormData(e.target).entries());putConfig({empresa:o.empresa.trim()||'P&S Cobranças',pctAtacado:+o.pctAtacado||0,pctVarejo:+o.pctVarejo||0});toast('Ajustes salvos.');render()}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#modalRoot').innerHTML)closeModal()});
 let lw=innerWidth;addEventListener('resize',()=>{if((lw<=860)!==(innerWidth<=860)){lw=innerWidth;renderNav()}});
 if(/^#(painel|contas|empresas|fechamento|ajustes)$/.test(location.hash))ui.view=location.hash.slice(1);
