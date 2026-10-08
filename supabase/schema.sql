@@ -126,3 +126,6 @@ begin
   begin alter publication supabase_realtime add table public.contas;   exception when duplicate_object then null; end;
   begin alter publication supabase_realtime add table public.config;   exception when duplicate_object then null; end;
 end $$;
+
+-- Faz a API do Supabase reconhecer as tabelas novas na hora
+notify pgrst, 'reload schema';
